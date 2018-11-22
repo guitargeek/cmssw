@@ -16,6 +16,7 @@
 
 #include "RecoEgamma/EgammaTools/interface/Utils.h"
 #include "RecoEgamma/EgammaTools/interface/MultiToken.h"
+#include "RecoEgamma/EgammaTools/interface/MVAVariableHelper.h"
 
 #include <memory>
 #include <vector>
@@ -46,12 +47,15 @@ class MVAValueMapProducer : public edm::stream::EDProducer<> {
   std::vector <std::string> mvaRawValueMapNames_;
   std::vector <std::string> mvaCategoriesMapNames_;
 
+  // To get the auxiliary MVA variables
+  const MVAVariableHelper<ParticleType> variableHelper_;
+
 };
 
 template <class ParticleType>
 MVAValueMapProducer<ParticleType>::MVAValueMapProducer(const edm::ParameterSet& iConfig)
   : src_(consumesCollector(), iConfig, "src", "srcMiniAOD")
-
+  , variableHelper_(consumesCollector())
 {
   // Loop over the list of MVA configurations passed here from python and
   // construct all requested MVA estimators.
@@ -114,8 +118,14 @@ void MVAValueMapProducer<ParticleType>::produce(edm::Event& iEvent, const edm::E
     std::vector<int>   mvaCategories;
 
     // Loop over particles
-    for (size_t i = 0; i < src->size(); ++i){
+    for (size_t i = 0; i < src->size(); ++i)
+    {
       auto iCand = src->ptrAt(i);
+
+      std::vector<float> foo = variableHelper_.getAuxVariables(iCand, iEvent);
+      for(auto const& x : foo) std::cout << x << " ";
+      std::cout << std::endl;
+
       int cat = -1; // Passed by reference to the mvaValue function to store the category
       const float response = mvaEstimators_[iEstimator]->mvaValue( iCand, iEvent, cat );
       mvaRawValues.push_back( response ); // The MVA score
