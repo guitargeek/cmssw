@@ -1,3 +1,6 @@
+#ifndef RecoEgamma_EgammaTools_MVAVariableHelper_H
+#define RecoEgamma_EgammaTools_MVAVariableHelper_H
+
 #include "DataFormats/Common/interface/ValueMap.h"
 #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 #include "FWCore/Framework/interface/ConsumesCollector.h"
@@ -6,27 +9,38 @@
 
 #include <unordered_map>
 #include <vector>
+#include <string>
+
+template<class ParticleType>
+class MVAVariableIndexMap {
+
+  public:
+
+    MVAVariableIndexMap() : indexMap_({}) {}
+
+    int getIndex(std::string const& name) const { return indexMap_.at(name); }
+
+  private:
+
+    const std::unordered_map<std::string, int> indexMap_;
+};
 
 template<class ParticleType>
 class MVAVariableHelper {
-    
+
   public:
 
     MVAVariableHelper(edm::ConsumesCollector && cc)
         : tokens_({})
-        , indexMap_({})
     {}
 
     const std::vector<float> getAuxVariables(edm::Ptr<ParticleType> const& particlePtr,
                                              const edm::Event& iEvent) const
     { return std::vector<float>{}; }
 
-    int getAuxIndex(std::string const& name) const { return indexMap_.at(name); }
-
   private:
 
     const std::vector<edm::EDGetToken> tokens_;
-    const std::unordered_map<std::string, int> indexMap_;
 };
 
 namespace {
@@ -57,7 +71,11 @@ MVAVariableHelper<reco::GsfElectron>::MVAVariableHelper(edm::ConsumesCollector &
             cc.consumes<edm::ValueMap<float>>(edm::InputTag("electronMVAVariableHelper", "convVtxFitProb")),
             cc.consumes<double>(edm::InputTag("fixedGridRhoFastjetAll"))
         })
-    , indexMap_({
+{}
+
+template<>
+MVAVariableIndexMap<reco::GsfElectron>::MVAVariableIndexMap()
+    : indexMap_({
             {"electronMVAVariableHelper:kfhits"        , 0},
             {"electronMVAVariableHelper:kfchi2"        , 1},
             {"electronMVAVariableHelper:convVtxFitProb", 2},
@@ -76,3 +94,5 @@ const std::vector<float> MVAVariableHelper<reco::GsfElectron>::getAuxVariables(
         getVariableFromDoubleToken(tokens_[3], iEvent)
     };
 }
+
+#endif

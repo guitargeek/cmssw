@@ -26,10 +26,10 @@ class AnyMVAEstimatorRun2Base {
   // These function should work on electrons or photons
   // of the reco or pat type
 
-  virtual float mvaValue( const edm::Ptr<reco::Candidate>& particle, const edm::EventBase&, int &iCategory) const = 0;
-  float mvaValue( const edm::Ptr<reco::Candidate>& candPtr, const edm::EventBase& iEvent) const {
+  virtual float mvaValue( const edm::Ptr<reco::Candidate>& particle, std::vector<float> const& auxVariables, int &iCategory) const = 0;
+  float mvaValue( const edm::Ptr<reco::Candidate>& candPtr, std::vector<float> const& auxVariables) const {
       int iCategory;
-      return mvaValue(candPtr, iEvent, iCategory);
+      return mvaValue(candPtr, auxVariables, iCategory);
   };
 
   // A specific implementation of MVA is expected to have one or more categories
@@ -52,9 +52,6 @@ class AnyMVAEstimatorRun2Base {
   // Some MVA implementation may require direct access to event content.
   // Implement these methods only if needed in the derived classes (use "override"
   // for certainty).
-
-  // This method needs to be used only once after this MVA estimator is constructed
-  virtual void setConsumes(edm::ConsumesCollector &&cc) {};
 
  private:
 

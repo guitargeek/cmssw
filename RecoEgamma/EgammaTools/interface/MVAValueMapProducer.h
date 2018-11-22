@@ -75,12 +75,6 @@ MVAValueMapProducer<ParticleType>::MVAValueMapProducer(const edm::ParameterSet& 
       throw cms::Exception(" MVA configuration not found: ")
         << " failed to find proper configuration for one of the MVAs in the main python script " << std::endl;
 
-    mvaEstimators_.back()->setConsumes( consumesCollector() );
-
-    //
-    // Compose and save the names of the value maps to be produced
-    //
-
     const std::string fullName = ( mvaEstimators_.back()->getName() +
                                    mvaEstimators_.back()->getTag()  );
 
@@ -122,12 +116,10 @@ void MVAValueMapProducer<ParticleType>::produce(edm::Event& iEvent, const edm::E
     {
       auto iCand = src->ptrAt(i);
 
-      std::vector<float> foo = variableHelper_.getAuxVariables(iCand, iEvent);
-      for(auto const& x : foo) std::cout << x << " ";
-      std::cout << std::endl;
+      std::vector<float> auxVariables = variableHelper_.getAuxVariables(iCand, iEvent);
 
       int cat = -1; // Passed by reference to the mvaValue function to store the category
-      const float response = mvaEstimators_[iEstimator]->mvaValue( iCand, iEvent, cat );
+      const float response = mvaEstimators_[iEstimator]->mvaValue( iCand, auxVariables, cat );
       mvaRawValues.push_back( response ); // The MVA score
       mvaValues.push_back( 2.0/(1.0+exp(-2.0*response))-1 ); // MVA output between -1 and 1
       mvaCategories.push_back( cat );

@@ -71,14 +71,8 @@ void ElectronMVAEstimatorRun2::init(const std::vector<std::string> &weightFileNa
   }
 }
 
-void ElectronMVAEstimatorRun2::setConsumes(edm::ConsumesCollector&& cc) {
-  // All tokens for event content needed by this MVA
-  // Tags from the variable helper
-  mvaVarMngr_.setConsumes(std::move(cc));
-}
-
 float ElectronMVAEstimatorRun2::
-mvaValue( const edm::Ptr<reco::Candidate>& candPtr, const edm::EventBase & iEvent, int &iCategory) const {
+mvaValue( const edm::Ptr<reco::Candidate>& candPtr, const std::vector<float>& auxVariables, int &iCategory) const {
 
   const edm::Ptr<reco::GsfElectron> gsfPtr{ candPtr };
   if( gsfPtr.get() == nullptr ) {
@@ -94,7 +88,7 @@ mvaValue( const edm::Ptr<reco::Candidate>& candPtr, const edm::EventBase & iEven
   std::vector<float> vars;
 
   for (int i = 0; i < nVariables_[iCategory]; ++i) {
-      vars.push_back(mvaVarMngr_.getValue(variables_[iCategory][i], gsfPtr, iEvent));
+      vars.push_back(mvaVarMngr_.getValue(variables_[iCategory][i], gsfPtr, auxVariables));
   }
 
   if(isDebug()) {
