@@ -72,23 +72,24 @@ void ElectronMVAEstimatorRun2::init(const std::vector<std::string> &weightFileNa
 }
 
 float ElectronMVAEstimatorRun2::
-mvaValue( const edm::Ptr<reco::Candidate>& candPtr, const std::vector<float>& auxVariables, int &iCategory) const {
+mvaValue( const reco::Candidate* candidate, const std::vector<float>& auxVariables, int &iCategory) const {
 
-  const edm::Ptr<reco::GsfElectron> gsfPtr{ candPtr };
-  if( gsfPtr.get() == nullptr ) {
+  const reco::GsfElectron* electron = dynamic_cast<const reco::GsfElectron*>(candidate);
+
+  if( electron == nullptr ) {
     throw cms::Exception("MVA failure: ")
       << " given particle is expected to be reco::GsfElectron or pat::Electron," << std::endl
       << " but appears to be neither" << std::endl;
   }
 
-  iCategory = findCategory( gsfPtr );
+  iCategory = findCategory( electron );
 
   if (iCategory < 0) return -999;
 
   std::vector<float> vars;
 
   for (int i = 0; i < nVariables_[iCategory]; ++i) {
-      vars.push_back(mvaVarMngr_.getValue(variables_[iCategory][i], gsfPtr, auxVariables));
+      vars.push_back(mvaVarMngr_.getValue(variables_[iCategory][i], electron, auxVariables));
   }
 
   if(isDebug()) {
@@ -107,28 +108,29 @@ mvaValue( const edm::Ptr<reco::Candidate>& candPtr, const std::vector<float>& au
   return response;
 }
 
-int ElectronMVAEstimatorRun2::findCategory( const edm::Ptr<reco::Candidate>& candPtr) const {
+int ElectronMVAEstimatorRun2::findCategory( const reco::Candidate* candidate) const {
 
-  const edm::Ptr<reco::GsfElectron> gsfPtr{ candPtr };
-  if( gsfPtr.get() == nullptr ) {
+  const reco::GsfElectron* electron = dynamic_cast<reco::GsfElectron const*>(candidate);
+
+  if( electron == nullptr ) {
     throw cms::Exception("MVA failure: ")
       << " given particle is expected to be reco::GsfElectron or pat::Electron," << std::endl
       << " but appears to be neither" << std::endl;
   }
 
-  return findCategory(gsfPtr);
+  return findCategory(electron);
 
 }
 
-int ElectronMVAEstimatorRun2::findCategory( const edm::Ptr<reco::GsfElectron>& gsfPtr) const {
+int ElectronMVAEstimatorRun2::findCategory( const reco::GsfElectron* electron) const {
 
   for (int i = 0; i < getNCategories(); ++i) {
-      if (categoryFunctions_[i](*gsfPtr)) return i;
+      if (categoryFunctions_[i](*electron)) return i;
   }
 
   edm::LogWarning  ("MVA warning") <<
-      "category not defined for particle with pt " << gsfPtr->pt() << " GeV, eta " <<
-          gsfPtr->superCluster()->eta() << " in " << getName() << getTag();
+      "category not defined for particle with pt " << electron->pt() << " GeV, eta " <<
+          electron->superCluster()->eta() << " in " << getName() << getTag();
 
   return -1;
 

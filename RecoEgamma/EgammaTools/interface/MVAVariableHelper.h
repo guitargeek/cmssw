@@ -29,13 +29,10 @@ class MVAVariableHelper {
 
   public:
 
-    MVAVariableHelper(edm::ConsumesCollector && cc)
-        : tokens_({})
-    {}
+    MVAVariableHelper(edm::ConsumesCollector && cc);
 
     const std::vector<float> getAuxVariables(edm::Ptr<ParticleType> const& particlePtr,
-                                             const edm::Event& iEvent) const
-    { return std::vector<float>{}; }
+                                             const edm::Event& iEvent) const;
 
   private:
 
@@ -54,6 +51,5 @@ class MVAVariableHelper {
 
     const std::vector<edm::EDGetToken> tokens_;
 };
-
 
 #endif

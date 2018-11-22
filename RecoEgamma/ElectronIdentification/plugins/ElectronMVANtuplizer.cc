@@ -329,7 +329,7 @@ ElectronMVANtuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
         for (int iVar = 0; iVar < nVars_; ++iVar) {
             std::vector<float> auxVariables = variableHelper_.getAuxVariables(ele, iEvent);
-            vars_[iVar] = mvaVarMngr_.getValue(iVar, ele, auxVariables);
+            vars_[iVar] = mvaVarMngr_.getValue(iVar, &(*ele), auxVariables);
         }
 
         if (isMC_) {

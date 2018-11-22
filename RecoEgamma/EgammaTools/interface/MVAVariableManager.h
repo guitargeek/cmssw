@@ -57,15 +57,13 @@ class MVAVariableManager {
         return nVars_;
     }
 
-    float getValue(int index, const edm::Ptr<ParticleType>& ptclPtr, const std::vector<float>& auxVariables) const {
+    float getValue(int index, const ParticleType* particle, const std::vector<float>& auxVariables) const {
         float value;
 
         MVAVariableInfo varInfo = variableInfos_[index];
 
-        std::cout << auxVariables.size() << std::endl;
-
         if (varInfo.auxIndex >= 0) value = auxVariables[varInfo.auxIndex];
-        else value = functions_[index](*ptclPtr);
+        else value = functions_[index](*particle);
 
         if (varInfo.hasLowerClip && value < varInfo.lowerClipValue) {
             value = varInfo.lowerClipValue;
@@ -115,8 +113,6 @@ class MVAVariableManager {
             .upperClipValue = upperClipValue,
             .auxIndex       = auxIndex,
         };
-
-        std::cout << formula << " " << auxIndex << std::endl;
 
         variableInfos_.push_back(varInfo);
         names_.push_back(name);
