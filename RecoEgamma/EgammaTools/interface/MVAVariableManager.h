@@ -62,6 +62,8 @@ class MVAVariableManager {
 
         MVAVariableInfo varInfo = variableInfos_[index];
 
+        std::cout << auxVariables.size() << std::endl;
+
         if (varInfo.auxIndex >= 0) value = auxVariables[varInfo.auxIndex];
         else value = functions_[index](*ptclPtr);
 
@@ -113,6 +115,8 @@ class MVAVariableManager {
             .upperClipValue = upperClipValue,
             .auxIndex       = auxIndex,
         };
+
+        std::cout << formula << " " << auxIndex << std::endl;
 
         variableInfos_.push_back(varInfo);
         names_.push_back(name);

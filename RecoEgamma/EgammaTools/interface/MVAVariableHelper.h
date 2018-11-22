@@ -15,7 +15,7 @@ class MVAVariableIndexMap {
 
   public:
 
-    MVAVariableIndexMap() : indexMap_({}) {}
+    MVAVariableIndexMap();
 
     int getIndex(std::string const& name) const { return indexMap_.at(name); }
 
