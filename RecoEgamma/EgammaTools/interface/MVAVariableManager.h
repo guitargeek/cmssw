@@ -5,8 +5,6 @@
 #include "CommonTools/Utils/interface/StringCutObjectSelector.h"
 #include "FWCore/ParameterSet/interface/FileInPath.h"
 #include "DataFormats/Candidate/interface/Candidate.h"
-#include "DataFormats/Common/interface/ValueMap.h"
-#include "FWCore/Framework/interface/ConsumesCollector.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "RecoEgamma/EgammaTools/interface/MVAVariableHelper.h"
 
