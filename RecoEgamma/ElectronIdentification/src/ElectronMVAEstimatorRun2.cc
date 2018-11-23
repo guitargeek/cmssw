@@ -116,7 +116,8 @@ mvaValue( const reco::Candidate* candidate, const std::vector<float>& auxVariabl
       vars.push_back(mvaVarMngr_.getValue(variables_[iCategory][i], electron, auxVariables));
   }
 
-  if(isDebug()) {
+  //if(isDebug()) {
+  if(true) {
     std::cout << " *** Inside " << getName() << getTag() << std::endl;
     std::cout << " category " << iCategory << std::endl;
     for (int i = 0; i < nVariables_[iCategory]; ++i) {
@@ -125,7 +126,8 @@ mvaValue( const reco::Candidate* candidate, const std::vector<float>& auxVariabl
   }
   const float response = gbrForests_.at(iCategory)->GetResponse(vars.data()); // The BDT score
 
-  if(isDebug()) {
+  //if(isDebug()) {
+  if(true) {
     std::cout << " ### MVA " << response << std::endl << std::endl;
   }
 
@@ -158,4 +160,38 @@ int ElectronMVAEstimatorRun2::findCategory( const reco::GsfElectron* electron) c
 
   return -1;
 
+}
+
+#include "DataFormats/EgammaCandidates/interface/Conversion.h"
+#include "RecoEgamma/EgammaTools/interface/ConversionTools.h"
+#include "DataFormats/VertexReco/interface/Vertex.h"
+
+#include <TMath.h>
+
+// For use with FWLite/Python
+static std::vector<float> getExtraVars(reco::GsfElectron          const* ele,
+                                       reco::ConversionCollection const* conversions,
+                                       reco::BeamSpot             const* beamSpot,
+                                       double                     const* rho)
+{
+    // Conversion vertex fit
+    reco::Conversion const* conv = ConversionTools::matchedConversion(*ele, *conversions, beamSpot->position());
+
+    float convVtxFitProb = -1.;
+    if(!(conv == nullptr)) {
+        const reco::Vertex &vtx = conv->conversionVertex();
+        if (vtx.isValid()) {
+            convVtxFitProb = TMath::Prob( vtx.chi2(),  vtx.ndof());
+        }
+    }
+
+    // kf track related variables
+    bool validKf=false;
+    reco::TrackRef trackRef = ele->closestCtfTrackRef();
+    validKf = trackRef.isAvailable();
+    validKf &= trackRef.isNonnull();
+    float kfchi2 = validKf ? trackRef->normalizedChi2() : 0 ; //ielectron->track()->normalizedChi2() : 0 ;
+    float kfhits = validKf ? trackRef->hitPattern().trackerLayersWithMeasurement() : -1. ;
+
+    return std::vector<float>{kfhits, kfchi2, convVtxFitProb, static_cast<float>(*rho)};
 }

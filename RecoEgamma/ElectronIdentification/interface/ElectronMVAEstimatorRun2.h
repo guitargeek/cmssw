@@ -21,6 +21,11 @@ class ElectronMVAEstimatorRun2 : public AnyMVAEstimatorRun2Base{
                            const std::vector<std::string>& categoryCutStrings,
                            bool debug=false );
 
+  // For use with FWLite/Python
+  static std::vector<float> getExtraVars(reco::GsfElectron          const* ele,
+                                         reco::ConversionCollection const* conversions,
+                                         reco::BeamSpot             const* beamSpotHandle,
+                                         double                     const* rho);
 
   void init(const std::vector<std::string> &weightFileNames);
 

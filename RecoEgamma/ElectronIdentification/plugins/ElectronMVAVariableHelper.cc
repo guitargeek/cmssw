@@ -18,7 +18,7 @@ class ElectronMVAVariableHelper : public edm::stream::EDProducer<> {
  public:
 
   explicit ElectronMVAVariableHelper(const edm::ParameterSet & iConfig);
-  ~ElectronMVAVariableHelper() override ;
+  ~ElectronMVAVariableHelper() override {}
 
   void produce(edm::Event & iEvent, const edm::EventSetup & iSetup) override;
 
@@ -28,14 +28,12 @@ private:
 
   // for AOD and MiniAOD case
   MultiTokenT<edm::View<reco::GsfElectron>> electronsToken_;
-  MultiTokenT<reco::VertexCollection>       vtxToken_;
   MultiTokenT<reco::ConversionCollection>   conversionsToken_;
   edm::EDGetTokenT<reco::BeamSpot>          beamSpotToken_;
 };
 
 ElectronMVAVariableHelper::ElectronMVAVariableHelper(const edm::ParameterSet & iConfig)
   : electronsToken_  (                 consumesCollector(), iConfig, "src"             , "srcMiniAOD")
-  , vtxToken_        (electronsToken_, consumesCollector(), iConfig, "vertexCollection", "vertexCollectionMiniAOD")
   , conversionsToken_(electronsToken_, consumesCollector(), iConfig, "conversions"     , "conversionsMiniAOD")
   , beamSpotToken_   (consumes<reco::BeamSpot>(iConfig.getParameter<edm::InputTag>("beamSpot")))
 {
@@ -44,20 +42,15 @@ ElectronMVAVariableHelper::ElectronMVAVariableHelper(const edm::ParameterSet & i
   produces<edm::ValueMap<float>>("kfchi2");
 }
 
-ElectronMVAVariableHelper::~ElectronMVAVariableHelper()
-{}
-
 void ElectronMVAVariableHelper::produce(edm::Event & iEvent, const edm::EventSetup & iSetup) {
 
   // get Handles
   auto electrons      = electronsToken_.getValidHandle(iEvent);
-  auto vtxH           = vtxToken_.getValidHandle(iEvent);
   auto conversions    = conversionsToken_.getValidHandle(iEvent);
 
   edm::Handle<reco::BeamSpot> beamSpotHandle; 
   iEvent.getByToken(beamSpotToken_, beamSpotHandle);
 
-  const reco::VertexRef vtx(vtxH, 0);
   const reco::BeamSpot* beamSpot = &*(beamSpotHandle.product());
 
   // prepare vector for output
@@ -68,11 +61,11 @@ void ElectronMVAVariableHelper::produce(edm::Event & iEvent, const edm::EventSet
   for (auto const& ele : *electrons) {
 
       // Conversion vertex fit
-      reco::ConversionRef convRef = ConversionTools::matchedConversion(ele, conversions, beamSpot->position());
+      reco::Conversion const* conv = ConversionTools::matchedConversion(ele, *conversions, beamSpot->position());
 
       float convVtxFitProb = -1.;
-      if(!convRef.isNull()) {
-          const reco::Vertex &vtx = convRef.get()->conversionVertex();
+      if(!(conv == nullptr)) {
+          const reco::Vertex &vtx = conv->conversionVertex();
           if (vtx.isValid()) {
               convVtxFitProb = TMath::Prob( vtx.chi2(),  vtx.ndof());
           }
@@ -107,8 +100,6 @@ void ElectronMVAVariableHelper::fillDescriptions(edm::ConfigurationDescriptions&
   desc.add<edm::InputTag>("srcMiniAOD",              edm::InputTag("slimmedElectrons","","@skipCurrentProcess"));
   desc.add<edm::InputTag>("beamSpot",                edm::InputTag("offlineBeamSpot"));
   desc.add<edm::InputTag>("conversionsMiniAOD",      edm::InputTag("reducedEgamma","reducedConversions"));
-  desc.add<edm::InputTag>("vertexCollection",        edm::InputTag("offlinePrimaryVertices"));
-  desc.add<edm::InputTag>("vertexCollectionMiniAOD", edm::InputTag("offlineSlimmedPrimaryVertices"));
   descriptions.add("electronMVAVariableHelper", desc);
 }
 
