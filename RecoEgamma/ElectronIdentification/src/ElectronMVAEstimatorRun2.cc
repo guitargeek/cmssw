@@ -29,12 +29,10 @@ ElectronMVAEstimatorRun2::ElectronMVAEstimatorRun2( const std::string& mvaTag,
                                                     int nCategories,
                                                     const std::string& variableDefinition,
                                                     const std::vector<std::string>& categoryCutStrings,
-                                                    bool debug):
-  AnyMVAEstimatorRun2Base( mvaName, 
-			   mvaTag,
-			   nCategories, 
-			   debug ),
-  mvaVarMngr_             (variableDefinition)
+                                                    const std::vector<std::string> &weightFileNames,
+                                                    bool debug)
+  : AnyMVAEstimatorRun2Base( mvaName, mvaTag, nCategories, debug )
+  , mvaVarMngr_            (variableDefinition)
 {
   
   if( (int)(categoryCutStrings.size()) != getNCategories() )
@@ -45,6 +43,7 @@ ElectronMVAEstimatorRun2::ElectronMVAEstimatorRun2( const std::string& mvaTag,
     StringCutObjectSelector<reco::GsfElectron> select(categoryCutStrings[i]);
     categoryFunctions_.push_back(select);
   }
+  init(weightFileNames);
 }
 
 
