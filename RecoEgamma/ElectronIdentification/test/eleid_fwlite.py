@@ -2,7 +2,6 @@ import ROOT
 ROOT.gROOT.SetBatch()
 
 import numpy as np
-import ctypes
 
 class ElectronMVAID:
 
@@ -40,12 +39,10 @@ class ElectronMVAID:
                 )
             self.estimator.init(self.sxmls)
             self._init = True
-        category = ctypes.c_int(0)
-        extra_vars = ROOT.vector(float)()
-        for var in [1.,1.,1.]:
-            extra_vars.push_back(var)
-        print(self.estimator.getExtraVars(ele, convs, beam_spot, rho))
-        return self.estimator.mvaValue(ele, extra_vars, category)
+        extra_vars = self.estimator.getExtraVars(ele, convs, beam_spot, rho[0])
+        for x in extra_vars:
+            print(x)
+        return self.estimator.mvaValue(ele, extra_vars)
 
 eleid_Fall17IsoV2 = ElectronMVAID(
     "ElectronMVAEstimatorRun2Fall17V2","V2","Iso",
