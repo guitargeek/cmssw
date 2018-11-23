@@ -116,8 +116,7 @@ mvaValue( const reco::Candidate* candidate, const std::vector<float>& auxVariabl
       vars.push_back(mvaVarMngr_.getValue(variables_[iCategory][i], electron, auxVariables));
   }
 
-  //if(isDebug()) {
-  if(true) {
+  if(isDebug()) {
     std::cout << " *** Inside " << getName() << getTag() << std::endl;
     std::cout << " category " << iCategory << std::endl;
     for (int i = 0; i < nVariables_[iCategory]; ++i) {
@@ -126,8 +125,7 @@ mvaValue( const reco::Candidate* candidate, const std::vector<float>& auxVariabl
   }
   const float response = gbrForests_.at(iCategory)->GetResponse(vars.data()); // The BDT score
 
-  //if(isDebug()) {
-  if(true) {
+  if(isDebug()) {
     std::cout << " ### MVA " << response << std::endl << std::endl;
   }
 
