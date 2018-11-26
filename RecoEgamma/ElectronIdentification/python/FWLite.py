@@ -88,10 +88,13 @@ class WorkingPoints(object):
 from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_tools import EleMVA_6CategoriesCuts, mvaVariablesFile, EleMVA_3CategoriesCuts
 
 from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_iso_V2_cff import mvaWeightFiles as Fall17_iso_V2_weightFiles
+from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_iso_V2_cff import workingPoints as Fall17_iso_V2_workingPoints
 from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V2_cff import mvaWeightFiles as Fall17_noIso_V2_weightFiles
 from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V2_cff import workingPoints as Fall17_noIso_V2_workingPoints
 from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring16_GeneralPurpose_V1_cff import mvaSpring16WeightFiles_V1 as mvaSpring16GPWeightFiles_V1
+from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring16_GeneralPurpose_V1_cff import workingPoints as mvaSpring16GP_V1_workingPoints
 from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring16_HZZ_V1_cff import mvaSpring16WeightFiles_V1 as mvaSpring16HZZWeightFiles_V1
+from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring16_HZZ_V1_cff import workingPoints as mvaSpring16HZZ_V1_workingPoints
 
 # Dictionary with the relecant e/gmma MVAs
 
@@ -107,7 +110,13 @@ electron_mvas = {
     }
 
 working_points = {
+    "Fall17IsoV2" : WorkingPoints("ElectronMVAEstimatorRun2","Fall17IsoV2",
+                                    Fall17_iso_V2_workingPoints),
     "Fall17NoIsoV2" : WorkingPoints("ElectronMVAEstimatorRun2","Fall17NoIsoV2",
                                     Fall17_noIso_V2_workingPoints),
+    "Spring16HZZV1" : WorkingPoints("ElectronMVAEstimatorRun2","Spring16HZZV1",
+                                    mvaSpring16HZZ_V1_workingPoints),
+    "Spring16V1": WorkingPoints("ElectronMVAEstimatorRun2","Spring16GeneralPurposeV1",
+                                mvaSpring16GP_V1_workingPoints),
 
     }

@@ -30,13 +30,16 @@ for i,event in enumerate(events):
     beam_spot = bs_handle.product()
     rho       = rho_handle.product()
 
+    def test_mva(ele, mvaname, convs, beam_spot, rho):
+        mva, category = electron_mvas[mvaname](ele, convs, beam_spot, rho)
+        wps = working_points[mvaname]
+        print '{:<20}, electron, pt={:5.1f}, mva={:5.2f}, cat={:d}'.format(mvaname, ele.pt(), mva, category)
+        for wp in wps.working_points:
+            print '\t', wp, wps.passed(ele, mva, category, wp)
+
     for ele in electrons:
-        mva, category = electron_mvas["Fall17IsoV2"](ele, convs, beam_spot, rho)
-        print("Fall17IsoV2 = " + str(mva)), category
-        mva, category = electron_mvas["Fall17NoIsoV2"](ele, convs, beam_spot, rho)
-        passed = working_points['Fall17NoIsoV2'].passed(ele, mva, category, 'wp90')
-        print("Fall17NoIsoV2 = " + str(mva)), category, passed
-        mva, category = electron_mvas["Spring16HZZV1"](ele, convs, beam_spot, rho)
-        print("Spring16HZZV1 = " + str(mva)), category
-        mva, category  = electron_mvas["Spring16V1"](ele, convs, beam_spot, rho)
-        print("Spring16V1 = " + str(mva)), category
+        test_mva(ele, 'Fall17IsoV2', convs, beam_spot, rho)
+        test_mva(ele, 'Fall17NoIsoV2', convs, beam_spot, rho)
+        test_mva(ele, 'Spring16HZZV1', convs, beam_spot, rho)
+        test_mva(ele, 'Spring16V1', convs, beam_spot, rho)
+
