@@ -31,11 +31,11 @@ for i,event in enumerate(events):
     rho       = rho_handle.product()
 
     for ele in electrons:
-        mva = ElectronMVAs["Fall17IsoV2"](ele, convs, beam_spot, rho)
-        print("Fall17IsoV2 = " + str(mva))
-        mva = ElectronMVAs["Fall17NoIsoV2"](ele, convs, beam_spot, rho)
-        print("Fall17NoIsoV2 = " + str(mva))
-        mva = ElectronMVAs["Spring16HZZV1"](ele, convs, beam_spot, rho)
-        print("Spring16HZZV1 = " + str(mva))
-        mva = ElectronMVAs["Spring16V1"](ele, convs, beam_spot, rho)
-        print("Spring16V1 = " + str(mva))
+        mva, category = ElectronMVAs["Fall17IsoV2"](ele, convs, beam_spot, rho)
+        print("Fall17IsoV2 = " + str(mva)), category
+        mva, category = ElectronMVAs["Fall17NoIsoV2"](ele, convs, beam_spot, rho)
+        print("Fall17NoIsoV2 = " + str(mva)), category
+        mva, category = ElectronMVAs["Spring16HZZV1"](ele, convs, beam_spot, rho)
+        print("Spring16HZZV1 = " + str(mva)), category
+        mva, category  = ElectronMVAs["Spring16V1"](ele, convs, beam_spot, rho)
+        print("Spring16V1 = " + str(mva)), category
