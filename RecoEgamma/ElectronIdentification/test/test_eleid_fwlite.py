@@ -1,4 +1,4 @@
-from RecoEgamma.ElectronIdentification.FWLite import ElectronMVAs
+from RecoEgamma.ElectronIdentification.FWLite import electron_mvas, working_points
 from DataFormats.FWLite import Events, Handle
 
 print('open input file...')
@@ -31,11 +31,12 @@ for i,event in enumerate(events):
     rho       = rho_handle.product()
 
     for ele in electrons:
-        mva, category = ElectronMVAs["Fall17IsoV2"](ele, convs, beam_spot, rho)
+        mva, category = electron_mvas["Fall17IsoV2"](ele, convs, beam_spot, rho)
         print("Fall17IsoV2 = " + str(mva)), category
-        mva, category = ElectronMVAs["Fall17NoIsoV2"](ele, convs, beam_spot, rho)
-        print("Fall17NoIsoV2 = " + str(mva)), category
-        mva, category = ElectronMVAs["Spring16HZZV1"](ele, convs, beam_spot, rho)
+        mva, category = electron_mvas["Fall17NoIsoV2"](ele, convs, beam_spot, rho)
+        passed = working_points['Fall17NoIsoV2'].passed(ele, mva, category, 'wp90')
+        print("Fall17NoIsoV2 = " + str(mva)), category, passed
+        mva, category = electron_mvas["Spring16HZZV1"](ele, convs, beam_spot, rho)
         print("Spring16HZZV1 = " + str(mva)), category
-        mva, category  = ElectronMVAs["Spring16V1"](ele, convs, beam_spot, rho)
+        mva, category  = electron_mvas["Spring16V1"](ele, convs, beam_spot, rho)
         print("Spring16V1 = " + str(mva)), category
