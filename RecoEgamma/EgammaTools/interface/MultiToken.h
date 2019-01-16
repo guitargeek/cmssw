@@ -77,7 +77,7 @@ class MultiTokenT {
         }
 
         if (!isMaster_) {
-            throw cms::Exception("MultiTokenTException") <<
+            throw cms::Exception("MultiTokenException") <<
                 "Trying to get a handle from a depending MultiToken before the master!";
         }
 
@@ -119,8 +119,12 @@ class MultiTokenT {
         return handle;
     }
 
+    T const& get(const edm::Event& iEvent) const {
+        return * getValidHandle(iEvent).product();
+    }
+
     // get the good token
-    edm::EDGetTokenT<T> get(const edm::Event& iEvent) const
+    edm::EDGetTokenT<T> getToken(const edm::Event& iEvent) const
     {
         // If we already know which token works, take that index
         if (*goodIndex_ >= 0)

@@ -198,10 +198,10 @@ void PhotonIDValueMapProducer::produce(edm::StreamID, edm::Event& iEvent, const 
 
     if (usesES_) {
         lazyToolnoZS = std::make_unique<noZS::EcalClusterLazyTools>(
-            iEvent, iSetup, ebRecHits_.get(iEvent), eeRecHits_.get(iEvent), esRecHits_.get(iEvent));
+            iEvent, iSetup, ebRecHits_.getToken(iEvent), eeRecHits_.getToken(iEvent), esRecHits_.getToken(iEvent));
     } else {
         lazyToolnoZS = std::make_unique<noZS::EcalClusterLazyTools>(
-            iEvent, iSetup, ebRecHits_.get(iEvent), eeRecHits_.get(iEvent));
+            iEvent, iSetup, ebRecHits_.getToken(iEvent), eeRecHits_.getToken(iEvent));
     }
 
     // Get PV

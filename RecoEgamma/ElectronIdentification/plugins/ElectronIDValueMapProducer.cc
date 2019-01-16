@@ -60,9 +60,9 @@ void ElectronIDValueMapProducer::produce(edm::StreamID, edm::Event& iEvent, cons
   auto src = src_.getValidHandle(iEvent);
 
   noZS::EcalClusterLazyTools lazyToolnoZS(iEvent, iSetup,
-                              ebRecHits_.get(iEvent),
-                              eeRecHits_.get(iEvent),
-                              esRecHits_.get(iEvent));
+                              ebRecHits_.getToken(iEvent),
+                              eeRecHits_.getToken(iEvent),
+                              esRecHits_.getToken(iEvent));
 
   // size_t n = src->size();
   std::vector<float> eleFull5x5SigmaIEtaIEta, eleFull5x5SigmaIEtaIPhi;
