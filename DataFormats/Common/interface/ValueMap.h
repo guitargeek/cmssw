@@ -8,6 +8,7 @@
  */
 
 #include "DataFormats/Common/interface/CMS_CLASS_VERSION.h"
+#include "DataFormats/Common/interface/View.h"
 #include "DataFormats/Provenance/interface/ProductID.h"
 #include "FWCore/Utilities/interface/EDMException.h"
 #include <vector>
@@ -212,7 +213,24 @@ namespace edm {
     const id_offset_vector & ids() const { return ids_; }
     /// meant to be used in AssociativeIterator, not by the ordinary user
     const_reference_type get(size_t idx) const { return values_[idx]; }
-    
+
+    template<class U>
+    auto mapWith(edm::View<U> const& collection) const {
+
+        /*
+         * In case one does not need a persistent ValueMap anymore, one can use the
+         * edm::Value map and the corresponding collection in memory to create a
+         * regular std::map, where the pointer to the element in memory is the
+         * key.
+         */
+
+        std::map<U const*, T> stdMap;
+        for(auto const& edmPtr : collection.ptrs()) {
+            stdMap[edmPtr.get()] = (*this)[edmPtr];
+        }
+        return stdMap;
+    }
+
     //Used by ROOT storage
     CMS_CLASS_VERSION(10)
 
