@@ -27,6 +27,10 @@ from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_iso_V
     import mvaEleID_Fall17_iso_V2_producer_config
 mvaConfigsForEleProducer.append( mvaEleID_Fall17_iso_V2_producer_config )
 
+from RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_iso_V2_HZZ_cff \
+    import mvaEleID_Fall17_iso_V2_HZZ_producer_config
+mvaConfigsForEleProducer.append( mvaEleID_Fall17_iso_V2_HZZ_producer_config )
+
 electronMVAValueMapProducer = cms.EDProducer('ElectronMVAValueMapProducer',
                                              # The module automatically detects AOD vs miniAOD, so we configure both
                                              #
