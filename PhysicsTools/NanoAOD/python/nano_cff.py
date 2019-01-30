@@ -188,16 +188,15 @@ def nanoAOD_recalibrateMETs(process,isData):
     return process
 
 from PhysicsTools.SelectorUtils.tools.vid_id_tools import *
+from RecoEgamma.ElectronIdentification import setupEgmGsfElectronIDSequence
 def nanoAOD_activateVID(process):
-    switchOnVIDElectronIdProducer(process,DataFormat.MiniAOD)
-    for modname in electron_id_modules_WorkingPoints_nanoAOD.modules:
-        setupAllVIDIdsInModule(process,modname,setupVIDElectronSelection)
-    process.electronSequence.insert(process.electronSequence.index(bitmapVIDForEle),process.egmGsfElectronIDSequence)
     for modifier in run2_miniAOD_80XLegacy, run2_nanoAOD_92X:
-        modifier.toModify(process.electronMVAValueMapProducer, srcMiniAOD = "slimmedElectronsUpdated")
-        modifier.toModify(process.egmGsfElectronIDs, physicsObjectSrc = "slimmedElectronsUpdated")
-        if hasattr(process,"heepIDVarValueMaps"):
-            modifier.toModify(process.heepIDVarValueMaps, elesMiniAOD = "slimmedElectronsUpdated")
+        modifier.toModify(electron_id_modules_WorkingPoints_nanoAOD, electron_collection = "slimmedElectronsUpdated")
+    setupEgmGsfElectronIDSequence( process,
+                                   identifications=electron_id_modules_WorkingPoints_nanoAOD.modules,
+                                   electron_collection=electron_id_modules_WorkingPoints_nanoAOD.electron_collection,
+                                   data_format="MiniAOD" )
+    process.electronSequence.insert(process.electronSequence.index(bitmapVIDForEle),process.egmGsfElectronIDSequence)
     switchOnVIDPhotonIdProducer(process,DataFormat.MiniAOD) # do not call this to avoid resetting photon IDs in VID, if called before inside makePuppiesFromMiniAOD
     for modname in photon_id_modules_WorkingPoints_nanoAOD.modules:
         setupAllVIDIdsInModule(process,modname,setupVIDPhotonSelection)

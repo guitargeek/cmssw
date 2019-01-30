@@ -132,7 +132,7 @@ B2GegHLTDQMOfflineTnPSource = DQMEDAnalyzer("HLTEleTagAndProbeOfflineSource",
         )
                                          )
 
-from RecoEgamma.ElectronIdentification.egmGsfElectronIDs_cff import egmGsfElectronIDs
+from RecoEgamma.ElectronIdentification.egmGsfElectronIDs_cfi import egmGsfElectronIDs
 
 B2GegmGsfElectronIDsForDQM = egmGsfElectronIDs.clone()
 B2GegmGsfElectronIDsForDQM.physicsObjectsIDs = cms.VPSet()

@@ -57,57 +57,7 @@ def setupAllVIDIdsInModule(process,id_module_name,setupFunction,patProducer=None
 # Supported data formats defined via "enum"
 from PhysicsTools.SelectorUtils.tools.DataFormat import DataFormat
 
-####
-# Electrons
-####
 
-#turns on the VID electron ID producer, possibly with extra options
-# for PAT and/or MINIAOD
-def switchOnVIDElectronIdProducer(process, dataFormat, task=None):
-    process.load('RecoEgamma.ElectronIdentification.egmGsfElectronIDs_cff')
-    if task is not None:
-        task.add(process.egmGsfElectronIDTask)
-    #*always* reset to an empty configuration
-    if( len(process.egmGsfElectronIDs.physicsObjectIDs) > 0 ):
-        process.egmGsfElectronIDs.physicsObjectIDs = cms.VPSet()
-    dataFormatString = "Undefined"
-    if dataFormat == DataFormat.AOD:
-        # No reconfiguration is required, default settings are for AOD
-        dataFormatString = "AOD"
-    elif dataFormat == DataFormat.MiniAOD:
-        # If we are dealing with MiniAOD, we overwrite the electron collection
-        # name appropriately, for the fragment we just loaded above. 
-        process.egmGsfElectronIDs.physicsObjectSrc = cms.InputTag('slimmedElectrons')
-        dataFormatString = "MiniAOD"
-    else:
-        raise Exception('InvalidVIDDataFormat', 'The requested data format is different from AOD or MiniAOD')
-    #    
-#    sys.stderr.write('Added \'egmGsfElectronIDs\' to process definition (%s format)!\n' % dataFormatString)
-
-def setupVIDElectronSelection(process,cutflow,patProducer=None,addUserData=True,task=None):
-    if not hasattr(process,'egmGsfElectronIDs'):
-        raise Exception('VIDProducerNotAvailable','egmGsfElectronIDs producer not available in process!')
-    setupVIDSelection(process.egmGsfElectronIDs,cutflow)
-    #add to PAT electron producer if available or specified
-    if hasattr(process,'patElectrons') or patProducer is not None:
-        if patProducer is None:
-            patProducer = process.patElectrons
-        idName = cutflow.idName.value()
-        addVIDSelectionToPATProducer(patProducer,'egmGsfElectronIDs',idName,addUserData)
-
-    #we know cutflow has a name otherwise an exception would have been thrown in setupVIDSelection
-    #run this for all heep IDs except V60 standard for which it is not needed
-    #it is needed for V61 and V70
-    if (cutflow.idName.value().find("HEEP")!=-1 and
-        cutflow.idName.value()!="heepElectronID-HEEPV60"):
-
-        #not the ideal way but currently the easiest
-        useMiniAOD = process.egmGsfElectronIDs.physicsObjectSrc == cms.InputTag('slimmedElectrons')
-            
-        from RecoEgamma.ElectronIdentification.Identification.heepElectronID_tools import addHEEPProducersToSeq
-        addHEEPProducersToSeq(process=process,seq=process.egmGsfElectronIDSequence,
-                              useMiniAOD=useMiniAOD,task=task)
-        
 ####
 # Muons
 ####

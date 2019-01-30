@@ -24,37 +24,23 @@ process.source = cms.Source("PoolSource",
 
 useAOD = False
 
-from PhysicsTools.SelectorUtils.tools.vid_id_tools import *
-# turn on VID producer, indicate data format  to be
-# DataFormat.AOD or DataFormat.MiniAOD, as appropriate
-if useAOD == True :
-    dataFormat = DataFormat.AOD
-else :
-    dataFormat = DataFormat.MiniAOD
-
-switchOnVIDElectronIdProducer(process, dataFormat)
-
-# define which IDs we want to produce
+# define which electron IDs we want to produce
 my_id_modules = [
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring16_GeneralPurpose_V1_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring16_HZZ_V1_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V2_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_iso_V2_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V2_XGBO_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_iso_V2_XGBO_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V2_TMVA_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_iso_V2_TMVA_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V1_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_iso_V1_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V2_XGBO_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_iso_V2_XGBO_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V2_TMVA_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_iso_V2_TMVA_cff',
+        'mvaElectronID_Spring16_GeneralPurpose_V1',
+        'mvaElectronID_Spring16_HZZ_V1',
+        'mvaElectronID_Fall17_noIso_V1',
+        'mvaElectronID_Fall17_iso_V1',
+        'mvaElectronID_Fall17_noIso_V2',
+        'mvaElectronID_Fall17_iso_V2',
+        'mvaElectronID_Fall17_noIso_V2_XGBO',
+        'mvaElectronID_Fall17_iso_V2_XGBO',
+        'mvaElectronID_Fall17_noIso_V2_TMVA',
+        'mvaElectronID_Fall17_iso_V2_TMVA',
                  ]
 
-#add them to the VID producer
-for idmod in my_id_modules:
-    setupAllVIDIdsInModule(process,idmod,setupVIDElectronSelection)
+from RecoEgamma.ElectronIdentification import setupEgmGsfElectronIDSequence
+
+setupEgmGsfElectronIDSequence(process, identifications=my_id_modules, data_format="MiniAOD")
 
 process.ntuplizer = cms.EDAnalyzer('ElectronMVANtuplizer',
         #

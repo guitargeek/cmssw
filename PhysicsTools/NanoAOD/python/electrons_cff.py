@@ -21,37 +21,38 @@ run2_miniAOD_80XLegacy.toModify( slimmedElectronsUpdated, computeMiniIso = True 
 
 electron_id_modules_WorkingPoints_nanoAOD = cms.PSet(
     modules = cms.vstring(
-        'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Fall17_94X_V1_cff',
-        'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Fall17_94X_V2_cff',
-        'RecoEgamma.ElectronIdentification.Identification.heepElectronID_HEEPV70_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_iso_V1_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V1_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_iso_V2_cff',
-        'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V2_cff',
+        'cutBasedElectronID_Fall17_94X_V1',
+        'cutBasedElectronID_Fall17_94X_V2',
+        'heepElectronID_HEEPV70',
+        'mvaElectronID_Fall17_iso_V1',
+        'mvaElectronID_Fall17_noIso_V1',
+        'mvaElectronID_Fall17_iso_V2',
+        'mvaElectronID_Fall17_noIso_V2',
     ),
     WorkingPoints = cms.vstring(
         "egmGsfElectronIDs:cutBasedElectronID-Fall17-94X-V2-veto",
         "egmGsfElectronIDs:cutBasedElectronID-Fall17-94X-V2-loose",
         "egmGsfElectronIDs:cutBasedElectronID-Fall17-94X-V2-medium",
         "egmGsfElectronIDs:cutBasedElectronID-Fall17-94X-V2-tight",
-    )
+    ),
+    electron_collection = cms.InputTag("slimmedElectrons") # the MiniAOD default
 )
 
 for modifier in run2_miniAOD_80XLegacy,run2_nanoAOD_94X2016:
     modifier.toModify(electron_id_modules_WorkingPoints_nanoAOD,
         modules = cms.vstring(
-            'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Fall17_94X_V1_cff',
-            'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Fall17_94X_V2_cff',
-            'RecoEgamma.ElectronIdentification.Identification.heepElectronID_HEEPV70_cff',
-            'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_iso_V1_cff',
-            'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V1_cff',
-            'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_iso_V2_cff',
-            'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V2_cff', 
-            'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Summer16_80X_V1_cff',
-            'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronHLTPreselecition_Summer16_V1_cff',
-            'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Spring15_25ns_V1_cff',
-            'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring16_GeneralPurpose_V1_cff',
-            'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring16_HZZ_V1_cff',
+            'cutBasedElectronID_Fall17_94X_V1',
+            'cutBasedElectronID_Fall17_94X_V2',
+            'heepElectronID_HEEPV70',
+            'mvaElectronID_Fall17_iso_V1',
+            'mvaElectronID_Fall17_noIso_V1',
+            'mvaElectronID_Fall17_iso_V2',
+            'mvaElectronID_Fall17_noIso_V2', 
+            'cutBasedElectronID_Summer16_80X_V1',
+            'cutBasedElectronHLTPreselecition_Summer16_V1',
+            'cutBasedElectronID_Spring15_25ns_V1',
+            'mvaElectronID_Spring16_GeneralPurpose_V1',
+            'mvaElectronID_Spring16_HZZ_V1',
             ),
         WorkingPoints = cms.vstring(
             "egmGsfElectronIDs:cutBasedElectronID-Fall17-94X-V2-veto",
@@ -61,17 +62,19 @@ for modifier in run2_miniAOD_80XLegacy,run2_nanoAOD_94X2016:
             )
 )
  
+from RecoEgamma.ElectronIdentification import get_cut_names, get_working_points
 
 def _get_bitmapVIDForEle_docstring(modules,WorkingPoints):
-    docstring=''
+    if len(WorkingPoints) == 0:
+        return ""
+
+    working_point = WorkingPoints[0].split(':')[-1]
+
     for modname in modules:
-        ids= __import__(modname, globals(), locals(), ['idName','cutFlow'])
-        for name in dir(ids):
-            _id = getattr(ids,name)
-            if hasattr(_id,'idName') and hasattr(_id,'cutFlow'):
-                if (len(WorkingPoints)>0 and _id.idName==WorkingPoints[0].split(':')[-1]):
-                    docstring = 'VID compressed bitmap (%s), %d bits per cut'%(','.join([cut.cutName.value() for cut in _id.cutFlow]),int(ceil(log(len(WorkingPoints)+1,2))))
-    return docstring
+        if working_point in get_working_points(modname):
+            cut_names = get_cut_names(modname,working_point)
+            n_bits = int(ceil(log(len(WorkingPoints)+1,2)))
+            return 'VID compressed bitmap (%s), %d bits per cut'%(','.join(cut_names), n_bits)
 
 bitmapVIDForEle = cms.EDProducer("EleVIDNestedWPBitmapProducer",
     src = cms.InputTag("slimmedElectrons"),

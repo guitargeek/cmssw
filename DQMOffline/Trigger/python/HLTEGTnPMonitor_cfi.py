@@ -971,7 +971,7 @@ egHLTMuonPhoDQMOfflineTnPSource = DQMEDAnalyzer("HLTMuPhoTagAndProbeOfflineSourc
 )
 
 
-from RecoEgamma.ElectronIdentification.egmGsfElectronIDs_cff import egmGsfElectronIDs
+from RecoEgamma.ElectronIdentification.egmGsfElectronIDs_cfi import egmGsfElectronIDs
 
 egmGsfElectronIDsForDQM = egmGsfElectronIDs.clone()
 egmGsfElectronIDsForDQM.physicsObjectsIDs = cms.VPSet()

@@ -279,24 +279,26 @@ def miniAOD_customizeCommon(process):
 
     #VID Electron IDs
     process.patElectrons.addElectronID = cms.bool(True)
-    electron_ids = ['RecoEgamma.ElectronIdentification.Identification.heepElectronID_HEEPV70_cff',
-                    'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Fall17_94X_V1_cff',
-                    'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Fall17_94X_V2_cff',
-                    'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V1_cff', 
-                    'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_iso_V1_cff',
-                    'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_noIso_V2_cff', 
-                    'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Fall17_iso_V2_cff',
-                    'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Summer16_80X_V1_cff',
-                    'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring16_GeneralPurpose_V1_cff',
-                    'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring16_HZZ_V1_cff',
+
+    electron_ids = ['heepElectronID_HEEPV70',
+                    'cutBasedElectronID_Fall17_94X_V1',
+                    'cutBasedElectronID_Fall17_94X_V2',
+                    'mvaElectronID_Fall17_noIso_V1',
+                    'mvaElectronID_Fall17_iso_V1',
+                    'mvaElectronID_Fall17_noIso_V2',
+                    'mvaElectronID_Fall17_iso_V2',
+                    'cutBasedElectronID_Summer16_80X_V1',
+                    'mvaElectronID_Spring16_GeneralPurpose_V1',
+                    'mvaElectronID_Spring16_HZZ_V1',
                     ]
-    switchOnVIDElectronIdProducer(process,DataFormat.MiniAOD, task)
-    process.egmGsfElectronIDs.physicsObjectSrc = \
-        cms.InputTag("reducedEgamma","reducedGedGsfElectrons")
-    process.electronMVAValueMapProducer.src = \
-        cms.InputTag('reducedEgamma','reducedGedGsfElectrons')
-    for idmod in electron_ids:
-        setupAllVIDIdsInModule(process,idmod,setupVIDElectronSelection,None,False,task)
+
+    from RecoEgamma.ElectronIdentification import setupEgmGsfElectronIDSequence
+
+    setupEgmGsfElectronIDSequence( process,
+                                   identifications=electron_ids,
+                                   data_format="MiniAOD",
+                                   electron_collection="reducedEgamma:reducedGedGsfElectrons" )
+    task.add(process.egmGsfElectronIDTask)
         
     #heepIDVarValueMaps only exists if HEEP V6.1 or HEEP 7.0 ID has already been loaded
     if hasattr(process,'heepIDVarValueMaps'):
