@@ -19,7 +19,8 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
             name_( params.getParameter<std::string>("name") ),
             doc_(params.existsAs<std::string>("doc") ? params.getParameter<std::string>("doc") : ""),
             extension_(params.existsAs<bool>("extension") ? params.getParameter<bool>("extension") : false),
-            src_(consumes<TProd>( params.getParameter<edm::InputTag>("src") )) 
+            src_(consumes<TProd>( params.getParameter<edm::InputTag>("src") )),
+            tablePutToken_(produces<nanoaod::FlatTable>())
         {
             edm::ParameterSet const & varsPSet = params.getParameter<edm::ParameterSet>("variables");
             for (const std::string & vname : varsPSet.getParameterNamesForType<edm::ParameterSet>()) {
@@ -31,24 +32,19 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
                 else if (type == "bool") vars_.push_back(new BoolVar(vname, nanoaod::FlatTable::BoolColumn, varPSet));
                 else throw cms::Exception("Configuration", "unsupported type "+type+" for variable "+vname);
             }
-
-            produces<nanoaod::FlatTable>();
         }
 
-        ~SimpleFlatTableProducerBase() override {}
-
         // this is to be overriden by the child class
-        virtual std::unique_ptr<nanoaod::FlatTable> fillTable(const edm::Event &iEvent, const edm::Handle<TProd> & prod) const = 0;
+        virtual nanoaod::FlatTable fillTable(const edm::Event &iEvent, const edm::Handle<TProd> & prod) const = 0;
 
 
         void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override {
-            edm::Handle<TProd> src;
-            iEvent.getByToken(src_, src);
+            auto src = iEvent.getHandle(src_);
 
-            std::unique_ptr<nanoaod::FlatTable> out = fillTable(iEvent, src);
-            out->setDoc(doc_);
+            nanoaod::FlatTable out = fillTable(iEvent, src);
+            out.setDoc(doc_);
 
-            iEvent.put(std::move(out));
+            iEvent.emplace(tablePutToken_, std::move(out));
         }
 
     protected:
@@ -70,7 +66,7 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
             protected:
                 std::string name_, doc_;
                 nanoaod::FlatTable::ColumnType type_;
-		int precision_;
+                int precision_;
         };
         class Variable : public VariableBase {
             public:
@@ -83,13 +79,12 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
                 public:
                     FuncVariable(const std::string & aname, nanoaod::FlatTable::ColumnType atype, const edm::ParameterSet & cfg) :
                         Variable(aname, atype, cfg), func_(cfg.getParameter<std::string>("expr"), true) {}
-                    ~FuncVariable() override {}
                     void fill(std::vector<const T *> selobjs, nanoaod::FlatTable & out) const override {
                         std::vector<ValType> vals(selobjs.size());
                         for (unsigned int i = 0, n = vals.size(); i < n; ++i) {
                             vals[i] = func_(*selobjs[i]);
                         }
-                        out.template addColumn<ValType>(this->name_, vals, this->doc_, this->type_,this->precision_);
+                        out.template addColumn<ValType>(this->name_, vals, this->doc_, this->type_, this->precision_);
                     }
                 protected:
                     StringFunctor func_;
@@ -100,6 +95,9 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
         typedef FuncVariable<StringObjectFunction<T>,uint8_t> UInt8Var;
         typedef FuncVariable<StringCutObjectSelector<T>,uint8_t> BoolVar;
         boost::ptr_vector<Variable> vars_;
+
+    private:
+        const edm::EDPutTokenT<nanoaod::FlatTable> tablePutToken_;
 };
 
 template<typename T>
@@ -128,9 +126,7 @@ class SimpleFlatTableProducer : public SimpleFlatTableProducerBase<T, edm::View<
             }
         }
 
-        ~SimpleFlatTableProducer() override {}
-
-        std::unique_ptr<nanoaod::FlatTable> fillTable(const edm::Event &iEvent, const edm::Handle<edm::View<T>> & prod) const override {
+        nanoaod::FlatTable fillTable(const edm::Event &iEvent, const edm::Handle<edm::View<T>> & prod) const override {
             std::vector<const T *> selobjs;
             std::vector<edm::Ptr<T>> selptrs; // for external variables
             if (singleton_) { 
@@ -147,15 +143,15 @@ class SimpleFlatTableProducer : public SimpleFlatTableProducerBase<T, edm::View<
 		    if(selobjs.size()>=maxLen_) break;
                 }
             }
-            auto out = std::make_unique<nanoaod::FlatTable>(selobjs.size(), this->name_, singleton_, this->extension_);
-            for (const auto & var : this->vars_) var.fill(selobjs, *out);
-            for (const auto & var : this->extvars_) var.fill(iEvent, selptrs, *out);
+            nanoaod::FlatTable out(selobjs.size(), this->name_, singleton_, this->extension_);
+            for (const auto & var : this->vars_) var.fill(selobjs, out);
+            for (const auto & var : this->extvars_) var.fill(iEvent, selptrs, out);
             return out;
         } 
 
     protected:
         bool  singleton_;
-	const unsigned int maxLen_;
+        const unsigned int maxLen_;
         const StringCutObjectSelector<T> cut_;
 
         class ExtVariable : public base::VariableBase {
@@ -170,8 +166,7 @@ class SimpleFlatTableProducer : public SimpleFlatTableProducerBase<T, edm::View<
                 ValueMapVariable(const std::string & aname, nanoaod::FlatTable::ColumnType atype, const edm::ParameterSet & cfg, edm::ConsumesCollector && cc) : 
                     ExtVariable(aname, atype, cfg), token_(cc.consumes<edm::ValueMap<TIn>>(cfg.getParameter<edm::InputTag>("src"))) {}
                 void fill(const edm::Event & iEvent, std::vector<edm::Ptr<T>> selptrs, nanoaod::FlatTable & out) const override {
-                    edm::Handle<edm::ValueMap<TIn>> vmap;
-                    iEvent.getByToken(token_, vmap);
+                    auto vmap = iEvent.getHandle(token_);
                     std::vector<ValType> vals(selptrs.size());   
                     for (unsigned int i = 0, n = vals.size(); i < n; ++i) {
                         vals[i] = (*vmap)[selptrs[i]];
@@ -196,12 +191,10 @@ class EventSingletonSimpleFlatTableProducer : public SimpleFlatTableProducerBase
         EventSingletonSimpleFlatTableProducer( edm::ParameterSet const & params ):
             SimpleFlatTableProducerBase<T,T>(params) {}
 
-        ~EventSingletonSimpleFlatTableProducer() override {}
-
-        std::unique_ptr<nanoaod::FlatTable> fillTable(const edm::Event &, const edm::Handle<T> & prod) const override {
-            auto out = std::make_unique<nanoaod::FlatTable>(1, this->name_, true, this->extension_);
+        nanoaod::FlatTable fillTable(const edm::Event &, const edm::Handle<T> & prod) const override {
+            nanoaod::FlatTable out(1, this->name_, true, this->extension_);
             std::vector<const T *> selobjs(1, prod.product());
-            for (const auto & var : this->vars_) var.fill(selobjs, *out);
+            for (const auto & var : this->vars_) var.fill(selobjs, out);
             return out;
         }
 };
@@ -212,12 +205,10 @@ class FirstObjectSimpleFlatTableProducer : public SimpleFlatTableProducerBase<T,
         FirstObjectSimpleFlatTableProducer( edm::ParameterSet const & params ):
           SimpleFlatTableProducerBase<T, edm::View<T>>(params) {}
 
-        ~FirstObjectSimpleFlatTableProducer() override {}
-
-        std::unique_ptr<nanoaod::FlatTable> fillTable(const edm::Event &iEvent, const edm::Handle<edm::View<T>> & prod) const override {
-            auto out = std::make_unique<nanoaod::FlatTable>(1, this->name_, true, this->extension_);
+        nanoaod::FlatTable fillTable(const edm::Event &iEvent, const edm::Handle<edm::View<T>> & prod) const override {
+            nanoaod::FlatTable out(1, this->name_, true, this->extension_);
             std::vector<const T *> selobjs(1, & (*prod)[0]);
-            for (const auto & var : this->vars_) var.fill(selobjs, *out);
+            for (const auto & var : this->vars_) var.fill(selobjs, out);
             return out;
         }
 };
