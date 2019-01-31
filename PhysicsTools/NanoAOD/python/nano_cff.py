@@ -190,8 +190,8 @@ def nanoAOD_recalibrateMETs(process,isData):
 from PhysicsTools.SelectorUtils.tools.vid_id_tools import *
 from RecoEgamma.ElectronIdentification import setupEgmGsfElectronIDSequence
 def nanoAOD_activateVID(process):
-    for modifier in run2_miniAOD_80XLegacy, run2_nanoAOD_92X:
-        modifier.toModify(electron_id_modules_WorkingPoints_nanoAOD, electron_collection = "slimmedElectronsUpdated")
+    # for modifier in run2_miniAOD_80XLegacy, run2_nanoAOD_92X:
+        # modifier.toModify(electron_id_modules_WorkingPoints_nanoAOD, electron_collection = "slimmedElectronsUpdated")
     setupEgmGsfElectronIDSequence( process,
                                    identifications=electron_id_modules_WorkingPoints_nanoAOD.modules,
                                    electron_collection=electron_id_modules_WorkingPoints_nanoAOD.electron_collection,
