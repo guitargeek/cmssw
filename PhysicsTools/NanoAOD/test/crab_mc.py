@@ -11,10 +11,12 @@ config.JobType.psetName = 'nano_WWZ_2016_cfg.py'
 config.JobType.outputFiles = ['nano.root']
 
 config.Data.inputDataset = '/WWZJetsTo4L2Nu_4f_TuneCUETP8M1_13TeV_aMCatNLOFxFx_pythia8/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v2/MINIAODSIM'
+# config.Data.inputDataset = "/GluGluHToZZTo4L_M125_13TeV_powheg2_JHUgenV6_pythia8/RunIISpring16MiniAODv1-PUSpring16RAWAODSIM_80X_mcRun2_asymptotic_2016_v3-v1/MINIAODSIM"
 config.Data.inputDBS = 'global'
 config.Data.splitting = 'EventAwareLumiBased'
-config.Data.unitsPerJob = 2000
-config.Data.totalUnits = 6000
+config.Data.unitsPerJob = 100000
+# config.Data.unitsPerJob = 2000
+# config.Data.totalUnits = 6000
 config.Data.outLFNDirBase = "/store/user/rembserj/MultileptonAnalysis/NANOAOD"
 config.Data.outputDatasetTag = 'NanoTest2'
 

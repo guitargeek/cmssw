@@ -33,6 +33,12 @@ process.nanoPath = cms.Path(process.nanoSequenceMC)
 #process.nanoPath = cms.Path(process.nanoSequence)
 #process.GlobalTag.globaltag = autoCond['run2_data']
 
+# Automatic addition of the customisation function from PhysicsTools.NanoAOD.nano_cff
+from PhysicsTools.NanoAOD.nano_cff import nanoAOD_customizeMC 
+
+#call to customisation function nanoAOD_customizeMC imported from PhysicsTools.NanoAOD.nano_cff
+process = nanoAOD_customizeMC(process)
+
 process.out = cms.OutputModule("NanoAODOutputModule",
     fileName = cms.untracked.string('nano.root'),
     outputCommands = process.NanoAODEDMEventContent.outputCommands,

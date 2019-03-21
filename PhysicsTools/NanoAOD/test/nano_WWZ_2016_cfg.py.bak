@@ -1,0 +1,111 @@
+import FWCore.ParameterSet.Config as cms
+from Configuration.StandardSequences.Eras import eras
+
+process = cms.Process('NANO',eras.Run2_2016, eras.run2_miniAOD_80XLegacy)
+# process = cms.Process('NANO',eras.Run2_2017,eras.run2_nanoAOD_94XMiniAODv2)
+
+process.load("FWCore.MessageLogger.MessageLogger_cfi")
+
+process.load("Configuration.StandardSequences.GeometryDB_cff")
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+process.load('Configuration.StandardSequences.Services_cff')
+
+from Configuration.AlCa.GlobalTag import GlobalTag
+process.GlobalTag = GlobalTag(process.GlobalTag, "80X_mcRun2_asymptotic_2016_TrancheIV_v9", '')
+
+process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
+process.MessageLogger.cerr.FwkReport.reportEvery = 100
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(100))
+
+process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring())
+process.source.fileNames = [
+        "file:/home/llr/cms/rembser/data/store/mc/RunIISummer16MiniAODv2/WWZJetsTo4L2Nu_4f_TuneCUETP8M1_13TeV_aMCatNLOFxFx_pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v2/70000/24F69872-9579-E711-8E06-0CC47A4D75F0.root"
+]
+
+process.load("PhysicsTools.NanoAOD.nano_cff")
+
+my_id_modules = [
+        'cutBasedElectronID_Fall17_94X_V1',
+        'cutBasedElectronID_Fall17_94X_V2',
+        'cutBasedElectronID_Summer16_80X_V1',
+        'cutBasedElectronHLTPreselecition_Summer16_V1',
+        'cutBasedElectronID_Spring15_25ns_V1',
+        'mvaElectronID_Spring16_GeneralPurpose_V1',
+        'mvaElectronID_Spring16_HZZ_V1',
+        'mvaElectronID_Fall17_noIso_V1',
+        'mvaElectronID_Fall17_iso_V1',
+        'mvaElectronID_Fall17_noIso_V2',
+        'mvaElectronID_Fall17_iso_V2',
+                 ]
+
+from RecoEgamma.ElectronIdentification import setupEgmGsfElectronIDSequence
+setupEgmGsfElectronIDSequence(process, identifications=my_id_modules, data_format="MiniAOD", electron_collection="slimmedElectrons")
+
+from PhysicsTools.SelectorUtils.tools.vid_id_tools import *
+dataFormat = DataFormat.MiniAOD
+
+switchOnVIDPhotonIdProducer(process, dataFormat)
+
+# define which IDs we want to produce
+my_id_modules = [
+        'RecoEgamma.PhotonIdentification.Identification.cutBasedPhotonID_Spring16_V2p2_cff',
+        'RecoEgamma.PhotonIdentification.Identification.cutBasedPhotonID_Fall17_94X_V1_TrueVtx_cff',
+        'RecoEgamma.PhotonIdentification.Identification.mvaPhotonID_Spring16_nonTrig_V1_cff',
+        'RecoEgamma.PhotonIdentification.Identification.mvaPhotonID_Fall17_94X_V1_cff',
+        'RecoEgamma.PhotonIdentification.Identification.mvaPhotonID_Fall17_94X_V1p1_cff',
+        'RecoEgamma.PhotonIdentification.Identification.mvaPhotonID_Fall17_94X_V2_cff',
+                 ]
+
+#add them to the VID producer
+for idmod in my_id_modules:
+    setupAllVIDIdsInModule(process,idmod,setupVIDPhotonSelection)
+
+process.add_(cms.Service('InitRootHandlers', EnableIMT = cms.untracked.bool(False)))
+
+process.nanoPath = cms.Path(process.egmPhotonIDSequence * process.egmGsfElectronIDSequence * process.nanoSequenceMC)
+#for data:
+#process.nanoPath = cms.Path(process.nanoSequence)
+#process.GlobalTag.globaltag = autoCond['run2_data']
+
+process.NANOEDMAODSIMoutput = cms.OutputModule("PoolOutputModule",
+    # compressionAlgorithm = cms.untracked.string('LZMA'),
+    compressionLevel = cms.untracked.int32(9),
+    dataset = cms.untracked.PSet(
+        dataTier = cms.untracked.string('NANOAODSIM'),
+        filterName = cms.untracked.string('')
+    ),
+    fileName = cms.untracked.string('nano.root'),
+    outputCommands = process.NANOAODSIMEventContent.outputCommands
+)
+
+
+# process.out = cms.OutputModule("NanoAODOutputModule",
+    # fileName = cms.untracked.string('nano.root'),
+    # outputCommands = process.NanoAODEDMEventContent.outputCommands,
+   # #compressionLevel = cms.untracked.int32(9),
+    # #compressionAlgorithm = cms.untracked.string("LZMA"),
+
+# )
+# process.out1 = cms.OutputModule("NanoAODOutputModule",
+    # fileName = cms.untracked.string('lzma.root'),
+    # outputCommands = process.NanoAODEDMEventContent.outputCommands,
+    # compressionLevel = cms.untracked.int32(9),
+    # compressionAlgorithm = cms.untracked.string("LZMA"),
+
+# )
+# process.end = cms.EndPath(process.out)#+process.out1)  
+
+# Automatic addition of the customisation function from PhysicsTools.NanoAOD.nano_cff
+from PhysicsTools.NanoAOD.nano_cff import nanoAOD_customizeMC 
+
+#call to customisation function nanoAOD_customizeMC imported from PhysicsTools.NanoAOD.nano_cff
+process = nanoAOD_customizeMC(process)
+
+# Add early deletion of temporary data products to reduce peak memory need
+from Configuration.StandardSequences.earlyDeleteSettings_cff import customiseEarlyDelete
+process = customiseEarlyDelete(process)
+# End adding early deletion
+
+# Path and EndPath definitions
+process.nanoAOD_step = cms.Path(process.nanoSequenceMC)
+process.NANOEDMAODSIMoutput_step = cms.EndPath(process.NANOEDMAODSIMoutput)
