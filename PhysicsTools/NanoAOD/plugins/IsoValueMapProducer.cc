@@ -40,31 +40,32 @@
 // class declaration
 //
 
+using std::is_same;
+
 template <typename T>
 class IsoValueMapProducer : public edm::global::EDProducer<> {
 public:
   explicit IsoValueMapProducer(const edm::ParameterSet& iConfig)
       : src_(consumes<edm::View<T>>(iConfig.getParameter<edm::InputTag>("src"))),
         relative_(iConfig.getParameter<bool>("relative")) {
-    if ((typeid(T) == typeid(pat::Muon)) || (typeid(T) == typeid(pat::Electron)) ||
-        typeid(T) == typeid(pat::IsolatedTrack)) {
+    if constexpr(is_same<T, pat::Muon>() || is_same<T, pat::Electron>() || is_same<T, pat::IsolatedTrack>()) {
       produces<edm::ValueMap<float>>("miniIsoChg");
       produces<edm::ValueMap<float>>("miniIsoAll");
-      ea_miniiso_.reset(new EffectiveAreas((iConfig.getParameter<edm::FileInPath>("EAFile_MiniIso")).fullPath()));
+      ea_miniiso_ = std::make_unique<EffectiveAreas>((iConfig.getParameter<edm::FileInPath>("EAFile_MiniIso")).fullPath());
       rho_miniiso_ = consumes<double>(iConfig.getParameter<edm::InputTag>("rho_MiniIso"));
     }
-    if ((typeid(T) == typeid(pat::Electron))) {
+    if constexpr(is_same<T, pat::Electron>()) {
       produces<edm::ValueMap<float>>("PFIsoChg");
       produces<edm::ValueMap<float>>("PFIsoAll");
       produces<edm::ValueMap<float>>("PFIsoAll04");
-      ea_pfiso_.reset(new EffectiveAreas((iConfig.getParameter<edm::FileInPath>("EAFile_PFIso")).fullPath()));
+      ea_pfiso_ = std::make_unique<EffectiveAreas>((iConfig.getParameter<edm::FileInPath>("EAFile_PFIso")).fullPath());
       rho_pfiso_ = consumes<double>(iConfig.getParameter<edm::InputTag>("rho_PFIso"));
-    } else if ((typeid(T) == typeid(pat::Photon))) {
+    } else if constexpr(is_same<T, pat::Photon>()) {
       produces<edm::ValueMap<float>>("PFIsoChg");
       produces<edm::ValueMap<float>>("PFIsoAll");
-      ea_pfiso_chg_.reset(new EffectiveAreas((iConfig.getParameter<edm::FileInPath>("EAFile_PFIso_Chg")).fullPath()));
-      ea_pfiso_neu_.reset(new EffectiveAreas((iConfig.getParameter<edm::FileInPath>("EAFile_PFIso_Neu")).fullPath()));
-      ea_pfiso_pho_.reset(new EffectiveAreas((iConfig.getParameter<edm::FileInPath>("EAFile_PFIso_Pho")).fullPath()));
+      ea_pfiso_chg_ = std::make_unique<EffectiveAreas>((iConfig.getParameter<edm::FileInPath>("EAFile_PFIso_Chg")).fullPath());
+      ea_pfiso_neu_ = std::make_unique<EffectiveAreas>((iConfig.getParameter<edm::FileInPath>("EAFile_PFIso_Neu")).fullPath());
+      ea_pfiso_pho_ = std::make_unique<EffectiveAreas>((iConfig.getParameter<edm::FileInPath>("EAFile_PFIso_Pho")).fullPath());
       rho_pfiso_ = consumes<double>(iConfig.getParameter<edm::InputTag>("rho_PFIso"));
     }
   }
@@ -92,14 +93,6 @@ private:
   void doPFIsoPho(edm::Event&) const;
 };
 
-//
-// constants, enums and typedefs
-//
-
-//
-// static data member definitions
-//
-
 template <typename T>
 float IsoValueMapProducer<T>::getEtaForEA(const T* obj) const {
   return obj->eta();
@@ -115,14 +108,13 @@ float IsoValueMapProducer<pat::Photon>::getEtaForEA(const pat::Photon* ph) const
 
 template <typename T>
 void IsoValueMapProducer<T>::produce(edm::StreamID streamID, edm::Event& iEvent, const edm::EventSetup& iSetup) const {
-  if ((typeid(T) == typeid(pat::Muon)) || (typeid(T) == typeid(pat::Electron)) ||
-      typeid(T) == typeid(pat::IsolatedTrack)) {
+  if constexpr(is_same<T, pat::Muon>() || is_same<T, pat::Electron>() || is_same<T, pat::IsolatedTrack>()) {
     doMiniIso(iEvent);
   };
-  if ((typeid(T) == typeid(pat::Electron))) {
+  if constexpr(is_same<T, pat::Electron>()) {
     doPFIsoEle(iEvent);
   }
-  if ((typeid(T) == typeid(pat::Photon))) {
+  if constexpr(is_same<T, pat::Photon>()) {
     doPFIsoPho(iEvent);
   }
 }
@@ -153,11 +145,11 @@ void IsoValueMapProducer<T>::doMiniIso(edm::Event& iEvent) const {
     miniIsoAll.push_back(scale * (chg + std::max(0.0, neu + pho - (*rho) * ea)));
   }
 
-  std::unique_ptr<edm::ValueMap<float>> miniIsoChgV(new edm::ValueMap<float>());
+  auto miniIsoChgV = std::make_unique<edm::ValueMap<float>>();
   edm::ValueMap<float>::Filler fillerChg(*miniIsoChgV);
   fillerChg.insert(src, miniIsoChg.begin(), miniIsoChg.end());
   fillerChg.fill();
-  std::unique_ptr<edm::ValueMap<float>> miniIsoAllV(new edm::ValueMap<float>());
+  auto miniIsoAllV = std::make_unique<edm::ValueMap<float>>();
   edm::ValueMap<float>::Filler fillerAll(*miniIsoAllV);
   fillerAll.insert(src, miniIsoAll.begin(), miniIsoAll.end());
   fillerAll.fill();
@@ -199,15 +191,15 @@ void IsoValueMapProducer<pat::Electron>::doPFIsoEle(edm::Event& iEvent) const {
                                   std::max(0.0, obj.neutralHadronIso() + obj.photonIso() - (*rho) * ea * 16. / 9.)));
   }
 
-  std::unique_ptr<edm::ValueMap<float>> PFIsoChgV(new edm::ValueMap<float>());
+  auto PFIsoChgV = std::make_unique<edm::ValueMap<float>>();
   edm::ValueMap<float>::Filler fillerChg(*PFIsoChgV);
   fillerChg.insert(src, PFIsoChg.begin(), PFIsoChg.end());
   fillerChg.fill();
-  std::unique_ptr<edm::ValueMap<float>> PFIsoAllV(new edm::ValueMap<float>());
+  auto PFIsoAllV = std::make_unique<edm::ValueMap<float>>();
   edm::ValueMap<float>::Filler fillerAll(*PFIsoAllV);
   fillerAll.insert(src, PFIsoAll.begin(), PFIsoAll.end());
   fillerAll.fill();
-  std::unique_ptr<edm::ValueMap<float>> PFIsoAll04V(new edm::ValueMap<float>());
+  auto PFIsoAll04V = std::make_unique<edm::ValueMap<float>>();
   edm::ValueMap<float>::Filler fillerAll04(*PFIsoAll04V);
   fillerAll04.insert(src, PFIsoAll04.begin(), PFIsoAll04.end());
   fillerAll04.fill();
@@ -246,11 +238,11 @@ void IsoValueMapProducer<pat::Photon>::doPFIsoPho(edm::Event& iEvent) const {
                        scale * (std::max(0.0, neu - (*rho) * ea_neu) + std::max(0.0, pho - (*rho) * ea_pho)));
   }
 
-  std::unique_ptr<edm::ValueMap<float>> PFIsoChgV(new edm::ValueMap<float>());
+  auto PFIsoChgV = std::make_unique<edm::ValueMap<float>>();
   edm::ValueMap<float>::Filler fillerChg(*PFIsoChgV);
   fillerChg.insert(src, PFIsoChg.begin(), PFIsoChg.end());
   fillerChg.fill();
-  std::unique_ptr<edm::ValueMap<float>> PFIsoAllV(new edm::ValueMap<float>());
+  auto PFIsoAllV = std::make_unique<edm::ValueMap<float>>();
   edm::ValueMap<float>::Filler fillerAll(*PFIsoAllV);
   fillerAll.insert(src, PFIsoAll.begin(), PFIsoAll.end());
   fillerAll.fill();
@@ -265,21 +257,20 @@ void IsoValueMapProducer<T>::fillDescriptions(edm::ConfigurationDescriptions& de
   edm::ParameterSetDescription desc;
   desc.add<edm::InputTag>("src")->setComment("input physics object collection");
   desc.add<bool>("relative")->setComment("compute relative isolation instead of absolute one");
-  if ((typeid(T) == typeid(pat::Muon)) || (typeid(T) == typeid(pat::Electron)) ||
-      typeid(T) == typeid(pat::IsolatedTrack)) {
+  if constexpr(is_same<T, pat::Muon>() || is_same<T, pat::Electron>() || is_same<T, pat::IsolatedTrack>()) {
     desc.add<edm::FileInPath>("EAFile_MiniIso")
         ->setComment("txt file containing effective areas to be used for mini-isolation pileup subtraction");
     desc.add<edm::InputTag>("rho_MiniIso")
         ->setComment("rho to be used for effective-area based mini-isolation pileup subtraction");
   }
-  if ((typeid(T) == typeid(pat::Electron))) {
+  if constexpr(is_same<T, pat::Electron>()) {
     desc.add<edm::FileInPath>("EAFile_PFIso")
         ->setComment(
             "txt file containing effective areas to be used for PF-isolation pileup subtraction for electrons");
     desc.add<edm::InputTag>("rho_PFIso")
         ->setComment("rho to be used for effective-area based PF-isolation pileup subtraction for electrons");
   }
-  if ((typeid(T) == typeid(pat::Photon))) {
+  if constexpr(is_same<T, pat::Photon>()) {
     desc.add<edm::InputTag>("mapIsoChg")->setComment("input charged PF isolation calculated in VID for photons");
     desc.add<edm::InputTag>("mapIsoNeu")->setComment("input neutral PF isolation calculated in VID for photons");
     desc.add<edm::InputTag>("mapIsoPho")->setComment("input photon PF isolation calculated in VID for photons");
@@ -296,13 +287,13 @@ void IsoValueMapProducer<T>::fillDescriptions(edm::ConfigurationDescriptions& de
         ->setComment("rho to be used for effective-area based PF-isolation pileup subtraction for photons");
   }
   std::string modname;
-  if (typeid(T) == typeid(pat::Muon))
+  if constexpr(is_same<T, pat::Muon>())
     modname += "Muon";
-  else if (typeid(T) == typeid(pat::Electron))
+  else if constexpr(is_same<T, pat::Electron>())
     modname += "Ele";
-  else if (typeid(T) == typeid(pat::Photon))
+  else if constexpr(is_same<T, pat::Photon>())
     modname += "Pho";
-  else if (typeid(T) == typeid(pat::IsolatedTrack))
+  else if constexpr(is_same<T, pat::IsolatedTrack>())
     modname += "IsoTrack";
   modname += "IsoValueMapProducer";
   descriptions.add(modname, desc);
