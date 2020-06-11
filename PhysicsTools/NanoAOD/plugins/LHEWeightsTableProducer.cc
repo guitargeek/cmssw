@@ -28,6 +28,45 @@ namespace {
     std::optional<std::string> group = std::nullopt;
   };
 
+  void foo(tinyxml2::XMLElement* root, int level, std::optional<std::string> group, std::vector<LHEWeightInfo> & out) {
+     for (auto* elem = root->FirstChildElement(); elem != nullptr;
+          elem = elem->NextSiblingElement()) {
+       if (strcmp(elem->Name(), "weight") == 0) {
+         std::string text = "";
+         if (elem->GetText())
+           text = elem->GetText();
+         out.push_back({elem->Attribute("id"), text, group});
+       } else if (strcmp(elem->Name(), "weightgroup") == 0) {
+          if(level == 0) {
+            foo(elem, level  + 1, elem->Attribute("name"), out);
+          } else if(level == 1) {
+
+            // We end up here if we find a weightgroup in a weightgroup.
+            // This happens at least from Madgraph 2.6.5 on, because two lines in the LHE header are
+            // flipped by mistake (see line 3 and 4 below). That makes the XML inconsistent.
+            // The work around here is instead of trying to descend into this nested weight group,
+            // we just update the name of the loop and continue in the current group.
+            //
+            //  1 <weightgroup name="NNPDF31_nnlo_as_0118_mc_hessian_pdfas" combine="symmhessian+as">
+            //  2 <weight id="1001" MUR="1.0" MUF="1.0" PDF="325300" >  </weight>
+            //  3 <weightgroup name="Central scale variation" combine="envelope">
+            //  4 </weightgroup> PDF
+            //  5 <weight id="1002" MUR="1.0" MUF="1.0" DYN_SCALE="1" PDF="325300" > dyn_scale_choice=sum pt  </weight>
+            //  6 <weight id="1003" MUR="1.0" MUF="1.0" DYN_SCALE="2" PDF="325300" > dyn_scale_choice=HT  </weight>
+            //  7 <weight id="1004" MUR="1.0" MUF="1.0" DYN_SCALE="3" PDF="325300" > dyn_scale_choice=HT/2  </weight>
+            //  8 <weight id="1005" MUR="1.0" MUF="1.0" DYN_SCALE="4" PDF="325300" > dyn_scale_choice=sqrts  </weight>
+            //  9 <weight id="1006" MUR="2.0" MUF="1.0" PDF="325300" > MUR=2.0  </weight>
+            //   ...
+            // 10 </weightgroup> # scale
+
+            group = elem->Attribute("name");
+          } else {
+            throw cms::Exception("LogicError", "Somethings is really wrong in the initrwgt header\n");
+          }
+        }
+     }
+  }
+
   std::vector<LHEWeightInfo> getLHEWeightInfos(LHERunInfoProduct const& lheInfo) {
     std::vector<LHEWeightInfo> out;
 
@@ -40,26 +79,7 @@ namespace {
       xmlDoc.Parse(("<root>" + join(iter->lines(), "") + "</root>").c_str());
       tinyxml2::XMLElement* root = xmlDoc.FirstChildElement("root");
 
-      for (auto* e = root->FirstChildElement(); e != nullptr; e = e->NextSiblingElement()) {
-        if (strcmp(e->Name(), "weight") == 0) {
-          // we are here if there is a weight that does not belong to any group
-          std::string text = "";
-          if (e->GetText())
-            text = e->GetText();
-          out.push_back({e->Attribute("id"), text});
-        }
-        if (strcmp(e->Name(), "weightgroup") == 0) {
-          std::string groupName = e->Attribute("name");
-          for (auto* inner = e->FirstChildElement("weight"); inner != nullptr;
-               inner = inner->NextSiblingElement("weight")) {
-            // we are here if there is a weight in a weightgroup
-            std::string text = "";
-            if (inner->GetText())
-              text = inner->GetText();
-            out.push_back({inner->Attribute("id"), text, groupName});
-          }
-        }
-      }
+      foo(root, 0, std::nullopt, out);
     }
 
     return out;

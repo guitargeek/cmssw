@@ -27,7 +27,11 @@ lheWeightsTable = cms.EDProducer(
     "LHEWeightsTableProducer",
     lheInfo = cms.InputTag("externalLHEProducer"),
     # The other needed weight groups are taken care of by the other default producers in NanoAOD
-    weightgroups = cms.vstring(["mg_reweighting"]),
+    weightgroups = cms.vstring(["mg_reweighting",
+                                "Central scale variation", # we expect 44 weights here
+                                "PDF4LHC15_nnlo_30_pdfas", # we expect 33 weights here
+                                "NNPDF31_nnlo_hessian_pdfas", # we expect 103 weights here
+                                ]),
     # normally weights are stored with precision 14, but we don't want to loose precision for the parabolic fits
     lheWeightPrecision = cms.int32(23),
 )
