@@ -53,24 +53,24 @@ namespace pat {
                                                const std::vector<std::string>&) const;
 
     /// evaluate jet correction factor up to a given level
-    float evaluate(edm::View<reco::BaseTau>::const_iterator&, std::shared_ptr<FactorizedJetCorrector>&, int);
+    float evaluate(reco::BaseTau const&, FactorizedJetCorrector&, int);
 
   private:
     /// python label of this TauJetCorrFactorsProducer module
     std::string moduleLabel_;
 
     /// input tau-jet collection
-    edm::EDGetTokenT<edm::View<reco::BaseTau> > srcToken_;
+    edm::EDGetTokenT<edm::View<reco::BaseTau>> srcToken_;
 
     /// mapping of reconstructed tau decay modes to payloads
-    typedef std::vector<int> vint;
+    using PayloadToken = edm::ESGetToken<JetCorrectorParametersCollection, JetCorrectionsRecord>;
     struct payloadMappingType {
       /// reconstructed tau decay modes associated to this payload,
       /// as defined in DataFormats/TauReco/interface/PFTau.h
-      vint decayModes_;
+      std::vector<int> decayModes_;
 
-      /// payload label
-      std::string payload_;
+      /// payload token
+      PayloadToken payloadToken_;
     };
     std::vector<payloadMappingType> payloadMappings_;
 
@@ -79,11 +79,10 @@ namespace pat {
     /// NOTE: no decay mode reconstruction implemented for CaloTaus so far
     ///      --> this payload is used for all CaloTaus
     ///
-    std::string defaultPayload_;
+    PayloadToken defaultPayloadToken_;
 
     /// jec levels
-    typedef std::vector<std::string> vstring;
-    vstring levels_;
+    std::vector<std::string> levels_;
   };
 }  // namespace pat
 
@@ -94,22 +93,19 @@ using namespace pat;
 
 TauJetCorrFactorsProducer::TauJetCorrFactorsProducer(const edm::ParameterSet& cfg)
     : moduleLabel_(cfg.getParameter<std::string>("@module_label")),
-      srcToken_(consumes<edm::View<reco::BaseTau> >(cfg.getParameter<edm::InputTag>("src"))),
-      levels_(cfg.getParameter<std::vector<std::string> >("levels")) {
-  typedef std::vector<edm::ParameterSet> vParameterSet;
-  vParameterSet parameters = cfg.getParameter<vParameterSet>("parameters");
-  for (vParameterSet::const_iterator param = parameters.begin(); param != parameters.end(); ++param) {
+      srcToken_(consumes<edm::View<reco::BaseTau>>(cfg.getParameter<edm::InputTag>("src"))),
+      levels_(cfg.getParameter<std::vector<std::string>>("levels")) {
+  auto parameters = cfg.getParameter<std::vector<edm::ParameterSet>>("parameters");
+  for (auto const& param : parameters) {
     payloadMappingType payloadMapping;
 
-    payloadMapping.payload_ = param->getParameter<std::string>("payload");
+    payloadMapping.payloadToken_ = esConsumes(edm::ESInputTag("", param.getParameter<std::string>("payload")));
 
-    vstring decayModes_string = param->getParameter<vstring>("decayModes");
-    for (vstring::const_iterator decayMode = decayModes_string.begin(); decayMode != decayModes_string.end();
-         ++decayMode) {
-      if ((*decayMode) == "*") {
-        defaultPayload_ = payloadMapping.payload_;
+    for (auto const& decayMode : param.getParameter<std::vector<std::string>>("decayModes")) {
+      if (decayMode == "*") {
+        defaultPayloadToken_ = payloadMapping.payloadToken_;
       } else {
-        payloadMapping.decayModes_.push_back(atoi(decayMode->data()));
+        payloadMapping.decayModes_.push_back(atoi(decayMode.data()));
       }
     }
 
@@ -130,26 +126,24 @@ std::vector<JetCorrectorParameters> TauJetCorrFactorsProducer::params(
   return retVal;
 }
 
-float TauJetCorrFactorsProducer::evaluate(edm::View<reco::BaseTau>::const_iterator& tauJet,
-                                          std::shared_ptr<FactorizedJetCorrector>& corrector,
+float TauJetCorrFactorsProducer::evaluate(reco::BaseTau const& tauJet,
+                                          FactorizedJetCorrector& corrector,
                                           int corrLevel) {
-  corrector->setJetEta(tauJet->eta());
-  corrector->setJetPt(tauJet->pt());
-  corrector->setJetE(tauJet->energy());
-  return corrector->getSubCorrections()[corrLevel];
+  corrector.setJetEta(tauJet.eta());
+  corrector.setJetPt(tauJet.pt());
+  corrector.setJetE(tauJet.energy());
+  return corrector.getSubCorrections()[corrLevel];
 }
 
-void TauJetCorrFactorsProducer::produce(edm::Event& evt, const edm::EventSetup& es) {
+void TauJetCorrFactorsProducer::produce(edm::Event& evt, const edm::EventSetup& eventSetup) {
   // get tau-jet collection from the event
-  edm::Handle<edm::View<reco::BaseTau> > tauJets;
-  evt.getByToken(srcToken_, tauJets);
+  auto tauJets = evt.getHandle(srcToken_);
 
-  typedef std::shared_ptr<FactorizedJetCorrector> FactorizedJetCorrectorPtr;
-  std::map<std::string, FactorizedJetCorrectorPtr> correctorMapping;
+  std::map<int, std::unique_ptr<FactorizedJetCorrector>> correctorMapping;
 
   // fill the tauJetCorrFactors
   std::vector<TauJetCorrFactors> tauJetCorrections;
-  for (edm::View<reco::BaseTau>::const_iterator tauJet = tauJets->begin(); tauJet != tauJets->end(); ++tauJet) {
+  for (auto const& tauJet : *tauJets) {
     // the TauJetCorrFactors::CorrectionFactor is a std::pair<std::string, float>
     // the string corresponds to the label of the correction level, the float to the tau-jet energy correction factor.
     // The first correction level is predefined with label 'Uncorrected'. The correction factor is 1.
@@ -162,37 +156,31 @@ void TauJetCorrFactorsProducer::produce(edm::Event& evt, const edm::EventSetup& 
           << "This makes no sense, either you should correct this or drop the module from \n"
           << "the sequence.";
 
-    std::string payload = defaultPayload_;
-    if (dynamic_cast<const reco::PFTau*>(&(*tauJet))) {
-      const reco::PFTau* pfTauJet = dynamic_cast<const reco::PFTau*>(&(*tauJet));
-      for (std::vector<payloadMappingType>::const_iterator payloadMapping = payloadMappings_.begin();
-           payloadMapping != payloadMappings_.end();
-           ++payloadMapping) {
-        for (vint::const_iterator decayMode = payloadMapping->decayModes_.begin();
-             decayMode != payloadMapping->decayModes_.end();
-             ++decayMode) {
-          if (pfTauJet->decayMode() == (*decayMode))
-            payload = payloadMapping->payload_;
+    auto const* payloadToken = &defaultPayloadToken_;
+    if (auto pfTauJet = dynamic_cast<const reco::PFTau*>(&tauJet)) {
+      for (auto const& payloadMapping : payloadMappings_) {
+        for (auto const& decayMode : payloadMapping.decayModes_) {
+          if (pfTauJet->decayMode() == decayMode)
+            payloadToken = &payloadMapping.payloadToken_;
         }
       }
     }
 
     // retrieve JEC parameters from the DB and build a new corrector,
     // in case it does not exist already for current payload
-    if (correctorMapping.find(payload) == correctorMapping.end()) {
-      edm::ESHandle<JetCorrectorParametersCollection> jecParameters;
-      es.get<JetCorrectionsRecord>().get(payload, jecParameters);
-
-      correctorMapping[payload] = std::make_shared<FactorizedJetCorrector>(params(*jecParameters, levels_));
+    const int payloadTokenValue = payloadToken->index().value();
+    if (correctorMapping.find(payloadTokenValue) == correctorMapping.end()) {
+      auto const& jecParameters = eventSetup.getData(*payloadToken);
+      correctorMapping[payloadTokenValue] = std::make_unique<FactorizedJetCorrector>(params(jecParameters, levels_));
     }
-    FactorizedJetCorrectorPtr& corrector = correctorMapping[payload];
+    auto& corrector = correctorMapping[payloadTokenValue];
 
     // evaluate tau-jet energy corrections
     size_t numLevels = levels_.size();
     for (size_t idx = 0; idx < numLevels; ++idx) {
       const std::string& corrLevel = levels_[idx];
 
-      float jecFactor = evaluate(tauJet, corrector, idx);
+      float jecFactor = evaluate(tauJet, *corrector, idx);
 
       // push back the set of JetCorrFactors: the first entry corresponds to the label
       // of the correction level. The second parameter corresponds to the jec factor.
